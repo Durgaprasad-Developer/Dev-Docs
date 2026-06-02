@@ -31,7 +31,7 @@ export async function getRepositoryTree(
       (item) =>
         item.type === 'blob' &&
         item.path &&
-        /\.(ts|tsx|js|jsx)$/.test(item.path) &&
+        /\.(ts|tsx|js|jsx|py)$/.test(item.path) &&
         !item.path.includes('node_modules') &&
         !item.path.includes('.next') &&
         !item.path.includes('dist')

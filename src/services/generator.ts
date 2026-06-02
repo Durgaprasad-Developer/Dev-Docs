@@ -17,6 +17,9 @@ export async function generateDocumentation(
   codeUnit: ParsedCodeUnit,
   filePath: string
 ): Promise<string> {
+  const fileExtension = filePath.split('.').pop() ?? 'ts';
+  const lang = fileExtension === 'py' ? 'python' : fileExtension === 'js' || fileExtension === 'jsx' ? 'javascript' : 'typescript';
+
   const paramsSection =
     codeUnit.metadata.parameters && codeUnit.metadata.parameters.length > 0
       ? `Parameters: ${codeUnit.metadata.parameters
@@ -36,7 +39,7 @@ export async function generateDocumentation(
 - **Exported:** ${codeUnit.metadata.isExported ? 'Yes' : 'No'}
 
 ## Source Code
-\`\`\`typescript
+\`\`\`${lang}
 ${codeUnit.rawCode}
 \`\`\`
 

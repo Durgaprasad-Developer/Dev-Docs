@@ -30,13 +30,53 @@ export async function generateContent(prompt: string): Promise<string> {
   return response.text();
 }
 
+export async function generateWithNvidia(prompt: string): Promise<string> {
+  const nvidiaKey = process.env.NVIDIA_API_KEY;
+  if (!nvidiaKey) {
+    throw new Error('NVIDIA_API_KEY environment variable is not configured');
+  }
+
+  const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${nvidiaKey}`,
+    },
+    body: JSON.stringify({
+      model: 'meta/llama-3.3-70b-instruct',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      top_p: 0.7,
+      max_tokens: 2048,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`NVIDIA API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content ?? '';
+}
+
 export async function generateWithFallback(prompt: string): Promise<string> {
   try {
     return await generateContent(prompt);
   } catch (error) {
-    console.error('[Gemini Flash Error] Falling back to Pro:', error);
-    const result = await geminiPro.generateContent(prompt);
-    return result.response.text();
+    console.error('[Gemini Flash Error] Falling back to Gemini Pro:', error);
+    try {
+      const result = await geminiPro.generateContent(prompt);
+      return result.response.text();
+    } catch (proError) {
+      console.error('[Gemini Pro Error] Falling back to NVIDIA Llama 3.3:', proError);
+      try {
+        return await generateWithNvidia(prompt);
+      } catch (nvError) {
+        console.error('[NVIDIA Fallback Error] All model pipelines exhausted:', nvError);
+        throw nvError;
+      }
+    }
   }
 }
 

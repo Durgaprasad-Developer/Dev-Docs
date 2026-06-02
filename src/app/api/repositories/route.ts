@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createGithubClient, getRepository, parseGithubUrl } from '@/lib/github';
 import { AddRepositorySchema } from '@/utils/validation';
@@ -7,7 +8,7 @@ import { logger } from '@/lib/logger';
 import type { ApiResponse } from '@/types';
 
 export async function GET(): Promise<NextResponse<ApiResponse>> {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
@@ -26,17 +27,17 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = (session.user as typeof session.user & { id?: string }).id!;
-  const accessToken = (session as typeof session & { accessToken?: string }).accessToken;
+  const accessToken = (session as typeof session & { accessToken?: string }).accessToken || process.env.GITHUB_ACCESS_TOKEN;
 
   if (!accessToken) {
     return NextResponse.json(
-      { success: false, error: 'GitHub access token not found. Please re-login.' },
+      { success: false, error: 'GitHub access token not found. Please configure GITHUB_ACCESS_TOKEN in .env.local.' },
       { status: 401 }
     );
   }

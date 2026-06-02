@@ -47,7 +47,12 @@ export async function ingestRepository(
           try {
             const content = await getFileContent(octokit, owner, repoName, item.path);
             const hash = createHash('sha256').update(content).digest('hex');
-            const language = item.path.endsWith('.ts') || item.path.endsWith('.tsx') ? 'typescript' : 'javascript';
+            const language =
+              item.path.endsWith('.ts') || item.path.endsWith('.tsx')
+                ? 'typescript'
+                : item.path.endsWith('.py')
+                ? 'python'
+                : 'javascript';
 
             // Upsert file
             const file = await prisma.file.upsert({
@@ -135,7 +140,12 @@ export async function ingestAndAnalyzeRepository(
           try {
             const content = await getFileContent(octokit, owner, repoName, item.path);
             const hash = createHash('sha256').update(content).digest('hex');
-            const language = /\.(ts|tsx)$/.test(item.path) ? 'typescript' : 'javascript';
+            const language =
+              /\.(ts|tsx)$/.test(item.path)
+                ? 'typescript'
+                : /\.py$/.test(item.path)
+                ? 'python'
+                : 'javascript';
 
             const file = await prisma.file.upsert({
               where: { repositoryId_path: { repositoryId: repoId, path: item.path } },

@@ -45,6 +45,13 @@ interface RepoDetail {
     size?: number | null;
     _count: { codeUnits: number };
   }>;
+  codeUnits?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    file: { path: string; id: string };
+    documentation: Array<{ status: string; id: string }>;
+  }>;
 }
 
 const statusColors: Record<DocStatus | string, string> = {
@@ -62,6 +69,7 @@ export default function RepositoryPage() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'files' | 'units'>('files');
 
   useEffect(() => {
     fetchRepo();
@@ -230,53 +238,158 @@ export default function RepositoryPage() {
             </div>
           </div>
 
-          {/* File list */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-white">Source Files</h2>
-              <span className="text-xs text-[#a8a8c8]">{repo.files.length} files</span>
+          {/* Repository Summary Card */}
+          <div className="glass-card p-6 border-[#2d2d4a]">
+            <h2 className="text-sm font-semibold text-white mb-4">Repository Summary</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <span className="text-xs text-[#6666a0] block font-medium">Primary Language</span>
+                <span className="text-sm font-medium text-white mt-1 block">{repo.language || 'Unknown'}</span>
+              </div>
+              <div>
+                <span className="text-xs text-[#6666a0] block font-medium">Total Code Units</span>
+                <span className="text-sm font-medium text-white mt-1 block">{repo.stats.totalCodeUnits} units</span>
+              </div>
+              <div>
+                <span className="text-xs text-[#6666a0] block font-medium">Doc Coverage</span>
+                <span className="text-sm font-medium text-white mt-1 block">{repo.stats.coveragePercent}%</span>
+              </div>
+              <div>
+                <span className="text-xs text-[#6666a0] block font-medium">Last Ingested Commit</span>
+                <span className="text-sm font-mono text-white mt-1 block truncate max-w-[150px]">{repo.lastCommit?.slice(0, 7) || 'N/A'}</span>
+              </div>
             </div>
-
-            {repo.files.length === 0 ? (
-              <div className="glass-card p-8 text-center">
-                <Clock className="w-8 h-8 text-indigo-500/50 mx-auto mb-3" />
-                <p className="text-[#a8a8c8] text-sm">
-                  {repo.status === 'PENDING'
-                    ? 'Start analysis to discover source files'
-                    : 'No source files found yet'}
-                </p>
-              </div>
-            ) : (
-              <div className="glass-card overflow-hidden">
-                <div className="divide-y divide-[#2d2d4a]">
-                  {repo.files.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-white/2 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileCode className="w-4 h-4 text-[#6666a0]" />
-                        <span className="text-sm font-mono text-[#d4d4f0]">{file.path}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {file._count.codeUnits > 0 && (
-                          <span className="text-xs text-[#6666a0]">
-                            {file._count.codeUnits} units
-                          </span>
-                        )}
-                        {file.language && (
-                          <span className="text-xs px-1.5 py-0.5 bg-white/5 rounded text-[#a8a8c8]">
-                            {file.language}
-                          </span>
-                        )}
-                        <ChevronRight className="w-3 h-3 text-[#6666a0]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Tabs header */}
+          <div className="flex border-b border-[#2d2d4a] gap-6 text-sm font-medium">
+            <button
+              onClick={() => setActiveTab('files')}
+              className={`pb-3 transition-colors ${
+                activeTab === 'files'
+                  ? 'text-indigo-400 border-b-2 border-indigo-500 font-semibold'
+                  : 'text-[#a8a8c8] hover:text-white'
+              }`}
+            >
+              Source Files ({repo.files.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('units')}
+              className={`pb-3 transition-colors ${
+                activeTab === 'units'
+                  ? 'text-indigo-400 border-b-2 border-indigo-500 font-semibold'
+                  : 'text-[#a8a8c8] hover:text-white'
+              }`}
+            >
+              Code Units ({repo.stats.totalCodeUnits})
+            </button>
+          </div>
+
+          {/* Files Tab Content */}
+          {activeTab === 'files' && (
+            <div>
+              {repo.files.length === 0 ? (
+                <div className="glass-card p-8 text-center">
+                  <Clock className="w-8 h-8 text-indigo-500/50 mx-auto mb-3" />
+                  <p className="text-[#a8a8c8] text-sm">
+                    {repo.status === 'PENDING'
+                      ? 'Start analysis to discover source files'
+                      : 'No source files found yet'}
+                  </p>
+                </div>
+              ) : (
+                <div className="glass-card overflow-hidden">
+                  <div className="divide-y divide-[#2d2d4a]">
+                    {repo.files.map((file) => (
+                      <div
+                        key={file.id}
+                        onClick={() => router.push(`/repositories/${id}/files/${file.id}`)}
+                        className="flex items-center justify-between px-4 py-3 hover:bg-white/2 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileCode className="w-4 h-4 text-[#6666a0]" />
+                          <span className="text-sm font-mono text-[#d4d4f0]">{file.path}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {file._count.codeUnits > 0 && (
+                            <span className="text-xs text-[#6666a0]">
+                              {file._count.codeUnits} units
+                            </span>
+                          )}
+                          {file.language && (
+                            <span className="text-xs px-1.5 py-0.5 bg-white/5 rounded text-[#a8a8c8]">
+                              {file.language}
+                            </span>
+                          )}
+                          <ChevronRight className="w-3 h-3 text-[#6666a0]" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Code Units Tab Content */}
+          {activeTab === 'units' && (
+            <div>
+              {!repo.codeUnits || repo.codeUnits.length === 0 ? (
+                <div className="glass-card p-8 text-center">
+                  <BookOpen className="w-8 h-8 text-indigo-500/50 mx-auto mb-3" />
+                  <p className="text-[#a8a8c8] text-sm">
+                    {repo.status === 'PENDING'
+                      ? 'Start analysis to extract code units'
+                      : 'No code units found. Ensure the repository has been analyzed.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="glass-card overflow-hidden">
+                  <div className="divide-y divide-[#2d2d4a]">
+                    {repo.codeUnits.map((unit) => {
+                      const doc = unit.documentation?.[0];
+                      const status = doc?.status || 'NOT_DOCUMENTED';
+                      
+                      return (
+                        <div
+                          key={unit.id}
+                          onClick={() => router.push(`/repositories/${id}/files/${unit.file.id}`)}
+                          className="flex items-center justify-between px-4 py-3 hover:bg-white/2 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-5 h-5 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                              <span className="text-[10px] text-indigo-400 font-mono">ƒ</span>
+                            </div>
+                            <div>
+                              <span className="text-sm font-mono text-[#d4d4f0] font-medium">{unit.name}</span>
+                              <span className="text-[10px] text-[#6666a0] font-mono ml-2">in {unit.file.path}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs px-1.5 py-0.5 bg-white/5 rounded text-[#a8a8c8] font-mono capitalize">
+                              {unit.type.toLowerCase()}
+                            </span>
+                            {status && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-mono ${
+                                status === 'CURRENT'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                  : status === 'OUTDATED'
+                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  : 'bg-white/5 text-[#a8a8c8] border-white/10'
+                              }`}>
+                                {status.replace('_', ' ').toLowerCase()}
+                              </span>
+                            )}
+                            <ChevronRight className="w-3 h-3 text-[#6666a0]" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>

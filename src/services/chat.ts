@@ -6,6 +6,34 @@ import { logger } from '@/lib/logger';
 const NO_CONTEXT_RESPONSE =
   'I could not find sufficient documentation to answer this question. Please ensure the repository has been analyzed and documentation has been generated.';
 
+// Text-similarity fallback: crude keyword match from DB docs when vector search is unavailable
+async function fallbackDocSearch(query: string, repositoryId: string, limit: number = 5) {
+  const keywords = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((k) => k.length > 3);
+
+  const docs = await prisma.documentation.findMany({
+    where: {
+      codeUnit: { repositoryId },
+      status: { not: 'BROKEN' },
+    },
+    include: { codeUnit: true },
+    take: 50,
+  });
+
+  const scored = docs.map((doc) => {
+    const haystack = `${doc.codeUnit.name} ${doc.markdown}`.toLowerCase();
+    const matches = keywords.filter((kw) => haystack.includes(kw)).length;
+    return { documentationId: doc.id, markdown: doc.markdown, name: doc.codeUnit.name, similarity: matches / (keywords.length || 1) };
+  });
+
+  return scored
+    .filter((d) => d.similarity > 0)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit);
+}
+
 export async function chat(
   repositoryId: string,
   userId: string,
@@ -13,13 +41,28 @@ export async function chat(
 ): Promise<string> {
   logger.info('Chat request', { repositoryId, userId, message: message.slice(0, 100) });
 
-  // Step 1: Search for relevant documentation using vector similarity
-  let relevantDocs: Awaited<ReturnType<typeof searchSimilarDocumentation>> = [];
+  // Step 1: Search for relevant documentation using vector similarity with fallback
+  let relevantDocs: { documentationId: string; markdown: string; name: string; similarity: number }[] = [];
   try {
     relevantDocs = await searchSimilarDocumentation(message, repositoryId, 5);
   } catch (error) {
-    logger.warn('Embedding search failed', { error });
+    logger.warn('Embedding search failed, using keyword fallback', { error });
+    try {
+      relevantDocs = await fallbackDocSearch(message, repositoryId, 5);
+    } catch (fbError) {
+      logger.warn('Keyword fallback also failed', { fbError });
+    }
   }
+
+  // If vector search returned nothing, try keyword fallback
+  if (relevantDocs.length === 0) {
+    try {
+      relevantDocs = await fallbackDocSearch(message, repositoryId, 5);
+    } catch {
+      // ignore
+    }
+  }
+
 
   // Step 2: Store user message
   await prisma.chatHistory.create({
@@ -48,7 +91,7 @@ export async function chat(
   const contextSection = relevantDocs
     .map(
       (doc, i) =>
-        `### Context ${i + 1}: \`${doc.name}\` (similarity: ${(doc.similarity * 100).toFixed(1)}%)\n\n${doc.markdown}`
+        `### Source ${i + 1}: \`${doc.name}\`\n\n${doc.markdown}`
     )
     .join('\n\n---\n\n');
 
@@ -65,20 +108,23 @@ export async function chat(
     .map((h) => `**${h.role}:** ${h.content}`)
     .join('\n');
 
+  const sourceNames = relevantDocs.map((d) => `\`${d.name}\``).join(', ');
+
   const prompt = `You are an expert documentation assistant for a software project. 
 Answer the developer's question using ONLY the provided documentation context.
-If the answer is not in the context, say you don't have enough information.
+After your answer, always include a "**Sources:**" line citing the relevant function/class names from the context (e.g. Sources: \`functionName\`).
+If the answer is not in the context, say: "I don't have documentation for that in this repository."
 Never hallucinate or invent API behavior.
 
-## Documentation Context
+## Documentation Context (from: ${sourceNames})
 ${contextSection}
 
 ${historySection ? `## Conversation History\n${historySection}\n` : ''}
-
 ## Developer Question
 ${message}
 
 ## Answer (in Markdown):`;
+
 
   const answer = await generateWithFallback(prompt);
 

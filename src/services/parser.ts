@@ -71,7 +71,139 @@ function extractParams(params: unknown[]): { name: string; type?: string; option
   });
 }
 
+export function parsePythonSource(code: string): ParsedCodeUnit[] {
+  const units: ParsedCodeUnit[] = [];
+  const lines = code.split('\n');
+
+  let currentClass: string | null = null;
+  let currentClassIndent = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const matchIndent = line.match(/^([ \t]*)/);
+    const indent = matchIndent ? matchIndent[0].length : 0;
+
+    if (currentClass !== null && indent <= currentClassIndent && trimmed !== '') {
+      currentClass = null;
+      currentClassIndent = -1;
+    }
+
+    // Match class: class ClassName(Base): or class ClassName:
+    const classMatch = trimmed.match(/^class\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s*\(([^)]*)\))?\s*:/);
+    if (classMatch) {
+      const className = classMatch[1];
+      const baseClasses = classMatch[2] ? classMatch[2].split(',').map((b) => b.trim()) : [];
+      const startLine = i + 1;
+
+      let endLine = startLine;
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j];
+        const nextTrimmed = nextLine.trim();
+        if (!nextTrimmed) continue;
+        const nextIndent = nextLine.match(/^([ \t]*)/)?.[0].length ?? 0;
+        if (nextIndent <= indent) {
+          break;
+        }
+        endLine = j + 1;
+      }
+
+      const rawCode = lines.slice(startLine - 1, endLine).join('\n');
+
+      units.push({
+        name: className,
+        type: 'CLASS',
+        startLine,
+        endLine,
+        rawCode: rawCode.slice(0, 4000),
+        metadata: {
+          extends: baseClasses,
+          implements: [],
+          isExported: true,
+        },
+      });
+
+      currentClass = className;
+      currentClassIndent = indent;
+      continue;
+    }
+
+    // Match def: def func_name(params):
+    const defMatch = trimmed.match(/^(?:async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*([^:]+))?\s*:/);
+    if (defMatch) {
+      const funcName = defMatch[1];
+      const paramsString = defMatch[2];
+      const returnType = defMatch[3] ? defMatch[3].trim() : 'void';
+      const startLine = i + 1;
+
+      const parameters = paramsString
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p && p !== 'self' && p !== 'cls')
+        .map((p) => {
+          const parts = p.split('=')[0].split(':');
+          return {
+            name: parts[0].trim(),
+            type: parts[1] ? parts[1].trim() : undefined,
+            optional: p.includes('='),
+          };
+        });
+
+      let endLine = startLine;
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j];
+        const nextTrimmed = nextLine.trim();
+        if (!nextTrimmed) continue;
+        const nextIndent = nextLine.match(/^([ \t]*)/)?.[0].length ?? 0;
+        if (nextIndent <= indent) {
+          break;
+        }
+        endLine = j + 1;
+      }
+
+      const rawCode = lines.slice(startLine - 1, endLine).join('\n');
+
+      if (currentClass) {
+        units.push({
+          name: `${currentClass}.${funcName}`,
+          type: 'METHOD',
+          startLine,
+          endLine,
+          rawCode: rawCode.slice(0, 2000),
+          metadata: {
+            parameters,
+            returnType,
+            isAsync: trimmed.startsWith('async '),
+          },
+        });
+      } else {
+        units.push({
+          name: funcName,
+          type: 'FUNCTION',
+          startLine,
+          endLine,
+          rawCode: rawCode.slice(0, 4000),
+          metadata: {
+            parameters,
+            returnType,
+            isAsync: trimmed.startsWith('async '),
+            isExported: true,
+          },
+        });
+      }
+    }
+  }
+
+  return units;
+}
+
 export function parseSourceFile(code: string, filePath: string): ParsedCodeUnit[] {
+  if (filePath.endsWith('.py')) {
+    return parsePythonSource(code);
+  }
+
   const units: ParsedCodeUnit[] = [];
   const lines = code.split('\n');
 
@@ -234,5 +366,7 @@ export function parseSourceFile(code: string, filePath: string): ParsedCodeUnit[
 export function getLanguageFromPath(path: string): string {
   if (path.endsWith('.ts') || path.endsWith('.tsx')) return 'typescript';
   if (path.endsWith('.js') || path.endsWith('.jsx')) return 'javascript';
+  if (path.endsWith('.py')) return 'python';
   return 'unknown';
 }
+

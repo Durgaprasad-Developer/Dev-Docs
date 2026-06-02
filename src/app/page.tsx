@@ -140,6 +140,15 @@ export default function LandingPage() {
             Connect GitHub Repository
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
+          
+          <button
+            id="demo-cta"
+            onClick={() => signIn('credentials', { callbackUrl: '/dashboard' })}
+            className="flex items-center gap-3 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl text-white font-semibold text-lg transition-all duration-300 hover:-translate-y-0.5"
+          >
+            <Sparkles className="w-5 h-5 text-purple-400" />
+            Bypass & Explore Demo
+          </button>
         </div>
       </section>
 

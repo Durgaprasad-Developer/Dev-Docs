@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { chat } from '@/services/chat';
 import { ChatMessageSchema } from '@/utils/validation';
 import { prisma } from '@/lib/prisma';
@@ -7,7 +8,7 @@ import { logger } from '@/lib/logger';
 import type { ApiResponse } from '@/types';
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
