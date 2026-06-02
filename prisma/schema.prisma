@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+model Repository {
+  id          String   @id @default(cuid())
+  name        String
+  fullName    String   @unique // owner/repo
+  githubUrl   String
+  owner       String
+  description String?
+  language    String?
+  isPrivate   Boolean  @default(false)
+  defaultBranch String @default("main")
+  userId      String   // NextAuth user id
+  status      RepoStatus @default(PENDING)
+  lastCommit  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files    File[]
+  chatHistory ChatHistory[]
+
+  @@index([userId])
+  @@map("repositories")
+}
+
+model File {
+  id           String   @id @default(cuid())
+  repositoryId String
+  path         String
+  hash         String   // SHA of file content
+  lastCommit   String?
+  language     String?
+  size         Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  codeUnits  CodeUnit[]
+
+  @@unique([repositoryId, path])
+  @@index([repositoryId])
+  @@map("files")
+}
+
+model CodeUnit {
+  id           String       @id @default(cuid())
+  repositoryId String
+  fileId       String
+  name         String
+  type         CodeUnitType
+  startLine    Int?
+  endLine      Int?
+  metadata     Json         // Parameters, return types, etc.
+  rawCode      String       @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  file          File           @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  documentation Documentation[]
+
+  @@index([fileId])
+  @@index([repositoryId])
+  @@map("code_units")
+}
+
+model Documentation {
+  id         String        @id @default(cuid())
+  codeUnitId String
+  markdown   String        @db.Text
+  status     DocStatus     @default(CURRENT)
+  version    Int           @default(1)
+  reviewedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  codeUnit  CodeUnit              @relation(fields: [codeUnitId], references: [id], onDelete: Cascade)
+  versions  DocumentationVersion[]
+  embedding Embedding?
+
+  @@index([codeUnitId])
+  @@index([status])
+  @@map("documentation")
+}
+
+model DocumentationVersion {
+  id              String   @id @default(cuid())
+  documentationId String
+  version         Int
+  markdown        String   @db.Text
+  changedBy       String?  // 'ai' or 'human'
+  createdAt       DateTime @default(now())
+
+  documentation Documentation @relation(fields: [documentationId], references: [id], onDelete: Cascade)
+
+  @@index([documentationId])
+  @@map("documentation_versions")
+}
+
+model Embedding {
+  id              String                 @id @default(cuid())
+  documentationId String                 @unique
+  embedding       Unsupported("vector(768)")
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  documentation Documentation @relation(fields: [documentationId], references: [id], onDelete: Cascade)
+
+  @@map("embeddings")
+}
+
+model ChatHistory {
+  id           String   @id @default(cuid())
+  repositoryId String
+  userId       String
+  role         ChatRole
+  content      String   @db.Text
+  createdAt    DateTime @default(now())
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId, userId])
+  @@map("chat_history")
+}
+
+enum RepoStatus {
+  PENDING
+  ANALYZING
+  READY
+  ERROR
+}
+
+enum CodeUnitType {
+  FUNCTION
+  CLASS
+  INTERFACE
+  METHOD
+  VARIABLE
+  TYPE
+  MODULE
+}
+
+enum DocStatus {
+  CURRENT
+  OUTDATED
+  BROKEN
+  REVIEW_REQUIRED
+  PENDING_REVIEW
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
