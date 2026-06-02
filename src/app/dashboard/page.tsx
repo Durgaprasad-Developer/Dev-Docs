@@ -38,9 +38,14 @@ export default function DashboardPage() {
   const [newRepoUrl, setNewRepoUrl] = useState('');
   const [addError, setAddError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [remoteRepos, setRemoteRepos] = useState<any[]>([]);
+  const [loadingRemote, setLoadingRemote] = useState(false);
 
   useEffect(() => {
-    if (status === 'authenticated') fetchRepos();
+    if (status === 'authenticated') {
+      fetchRepos();
+      fetchRemoteRepos();
+    }
   }, [status]);
 
   async function fetchRepos() {
@@ -53,6 +58,21 @@ export default function DashboardPage() {
       console.error('Failed to fetch repos', err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchRemoteRepos() {
+    setLoadingRemote(true);
+    try {
+      const res = await fetch('/api/github/repos');
+      const data = await res.json();
+      if (data.success) {
+        setRemoteRepos(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch remote repos', err);
+    } finally {
+      setLoadingRemote(false);
     }
   }
 
@@ -71,6 +91,30 @@ export default function DashboardPage() {
 
       if (data.success) {
         setNewRepoUrl('');
+        setShowAddForm(false);
+        await fetchRepos();
+      } else {
+        setAddError(data.error || 'Failed to add repository');
+      }
+    } catch {
+      setAddError('Network error. Please try again.');
+    } finally {
+      setAddingRepo(false);
+    }
+  }
+
+  async function addRemoteRepository(repoUrl: string) {
+    setAddingRepo(true);
+    setAddError('');
+    try {
+      const res = await fetch('/api/repositories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ githubUrl: repoUrl }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
         setShowAddForm(false);
         await fetchRepos();
       } else {
@@ -103,224 +147,276 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#0a0a0f] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: '#0e0c0a' }}>
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#0a0a0f]/80 backdrop-blur-sm border-b border-[#2d2d4a] px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-white">
-                Dashboard
-              </h1>
-              <p className="text-sm text-[#a8a8c8]">
-                {session?.user?.name ? `Welcome back, ${session.user.name}` : 'Manage your repositories'}
-              </p>
+
+        {/* ── Header ── */}
+        <div
+          className="sticky top-0 z-10 flex items-center justify-between px-7 py-4"
+          style={{ background: 'rgba(14,12,10,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #2e2b26' }}
+        >
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold" style={{ color: '#F5ECD7' }}>Dashboard</h1>
+              <div className="term-cursor" />
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                id="refresh-repos"
-                onClick={fetchRepos}
-                className="p-2 hover:bg-white/5 rounded-lg text-[#a8a8c8] hover:text-white transition-all"
-                title="Refresh"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-              <button
-                id="add-repo-btn"
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                Add Repository
-              </button>
-            </div>
+            <p className="text-sm mt-0.5" style={{ color: '#5a5248' }}>
+              {session?.user?.name ? `Welcome back, ${session.user.name}` : 'Manage your repositories'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button id="refresh-repos" onClick={fetchRepos} className="btn-ghost" title="Refresh">
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <button
+              id="add-repo-btn"
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="btn-primary text-sm px-5 py-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Repository
+            </button>
           </div>
         </div>
 
-        <div className="px-8 py-6 space-y-6">
-          {/* Add Repo Form */}
+        <div className="px-7 py-6 space-y-5">
+
+          {/* ── Add Repo Panel ── */}
           {showAddForm && (
-            <div className="glass-card p-5 animate-slide-up">
-              <h3 className="text-sm font-medium text-white mb-3">Add a GitHub Repository</h3>
-              <div className="flex gap-3">
-                <input
-                  id="repo-url-input"
-                  type="url"
-                  placeholder="https://github.com/owner/repository"
-                  value={newRepoUrl}
-                  onChange={(e) => setNewRepoUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addRepository()}
-                  className="flex-1 bg-[#111118] border border-[#2d2d4a] rounded-lg px-4 py-2.5 text-white text-sm placeholder-[#6666a0] focus:border-indigo-500 focus:outline-none transition-colors"
-                />
-                <button
-                  id="add-repo-submit"
-                  onClick={addRepository}
-                  disabled={addingRepo || !newRepoUrl.trim()}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white text-sm font-medium transition-all"
-                >
-                  {addingRepo ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
-                  {addingRepo ? 'Adding...' : 'Add'}
-                </button>
+            <div className="glass-card animate-slide-up overflow-hidden" style={{ borderColor: 'rgba(218,119,86,0.25)' }}>
+              {/* Panel header */}
+              <div className="flex items-center gap-2.5 px-5 py-3.5" style={{ background: '#141210', borderBottom: '1px solid #2e2b26' }}>
+                <GitBranch className="w-4 h-4" style={{ color: '#DA7756' }} />
+                <span className="font-medium text-sm" style={{ color: '#F5ECD7' }}>Add a GitHub Repository</span>
               </div>
-              {addError && (
-                <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {addError}
-                </p>
-              )}
-              <p className="mt-2 text-xs text-[#6666a0]">
-                Supports public repositories. Private repos require the <code>repo</code> OAuth scope.
-              </p>
+
+              <div className="p-5 space-y-5">
+                {/* Code comment — developer touch */}
+                <div className="font-mono text-sm" style={{ color: '#5a5248' }}>
+                  <span style={{ color: '#DA7756' }}>// </span>
+                  select from your GitHub repositories or paste a URL below
+                </div>
+
+                {/* Remote repos grid */}
+                <div>
+                  <div className="text-xs font-medium mb-3 uppercase tracking-wider" style={{ color: '#5a5248' }}>Your Repositories</div>
+                  {loadingRemote ? (
+                    <div className="flex items-center gap-2 py-4" style={{ color: '#5a5248' }}>
+                      <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#DA7756' }} />
+                      <span className="text-sm">Fetching repositories...</span>
+                    </div>
+                  ) : remoteRepos.length === 0 ? (
+                    <p className="text-sm" style={{ color: '#5a5248' }}>No repositories found. Check your GitHub token scopes.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto">
+                      {remoteRepos.map((remote) => {
+                        const isAlreadyAdded = repos.some(r => r.fullName.toLowerCase() === remote.fullName.toLowerCase());
+                        return (
+                          <div
+                            key={remote.id}
+                            className="flex items-center justify-between p-3 rounded-md"
+                            style={{
+                              border: `1px solid ${isAlreadyAdded ? '#201e1b' : '#2e2b26'}`,
+                              background: isAlreadyAdded ? 'rgba(14,12,10,0.5)' : '#141210',
+                              opacity: isAlreadyAdded ? 0.5 : 1,
+                            }}
+                          >
+                            <div className="min-w-0 mr-3">
+                              <p className="text-sm font-medium truncate" style={{ color: '#F5ECD7' }}>{remote.fullName}</p>
+                              {remote.description && (
+                                <p className="text-xs truncate mt-0.5" style={{ color: '#5a5248' }}>{remote.description}</p>
+                              )}
+                            </div>
+                            <button
+                              disabled={addingRepo || isAlreadyAdded}
+                              onClick={() => addRemoteRepository(remote.htmlUrl)}
+                              className="flex-shrink-0 text-xs px-3 py-1.5 rounded font-medium transition-all disabled:cursor-not-allowed"
+                              style={isAlreadyAdded ? {
+                                background: 'transparent',
+                                border: '1px solid #2e2b26',
+                                color: '#5a5248',
+                              } : {
+                                background: 'rgba(218,119,86,0.12)',
+                                border: '1px solid rgba(218,119,86,0.35)',
+                                color: '#DA7756',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {isAlreadyAdded ? 'Added' : 'Select'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3">
+                  <div style={{ flex: 1, height: 1, background: '#2e2b26' }} />
+                  <span className="text-xs font-mono" style={{ color: '#5a5248' }}>or enter URL manually</span>
+                  <div style={{ flex: 1, height: 1, background: '#2e2b26' }} />
+                </div>
+
+                {/* Manual input */}
+                <div className="flex gap-2">
+                  <input
+                    id="repo-url-input"
+                    type="url"
+                    placeholder="https://github.com/owner/repository"
+                    value={newRepoUrl}
+                    onChange={e => setNewRepoUrl(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addRepository()}
+                    className="flex-1 text-sm px-4 py-2.5 rounded-md outline-none transition-all font-mono"
+                    style={{ background: '#141210', border: '1px solid #2e2b26', color: '#F5ECD7' }}
+                    onFocus={e => (e.target.style.borderColor = '#DA7756')}
+                    onBlur={e => (e.target.style.borderColor = '#2e2b26')}
+                  />
+                  <button
+                    id="add-repo-submit"
+                    onClick={addRepository}
+                    disabled={addingRepo || !newRepoUrl.trim()}
+                    className="btn-primary px-5 py-2.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {addingRepo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    {addingRepo ? 'Adding...' : 'Add'}
+                  </button>
+                </div>
+
+                {addError && (
+                  <div className="flex items-center gap-2 text-sm" style={{ color: '#f87171' }}>
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {addError}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Stats row */}
+          {/* ── Stats ── */}
           {!loading && repos.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: 'Total Repos', value: repos.length, icon: GitBranch, color: 'text-indigo-400' },
-                {
-                  label: 'Ready',
-                  value: repos.filter((r) => r.status === 'READY').length,
-                  icon: CheckCircle,
-                  color: 'text-emerald-400',
-                },
-                {
-                  label: 'Analyzing',
-                  value: repos.filter((r) => r.status === 'ANALYZING').length,
-                  icon: Loader2,
-                  color: 'text-blue-400',
-                },
-                {
-                  label: 'Errors',
-                  value: repos.filter((r) => r.status === 'ERROR').length,
-                  icon: AlertTriangle,
-                  color: 'text-red-400',
-                },
-              ].map((stat) => (
+                { label: 'Total Repos',  value: repos.length,                                     color: '#DA7756', icon: GitBranch },
+                { label: 'Ready',        value: repos.filter(r => r.status === 'READY').length,   color: '#4ade80', icon: CheckCircle },
+                { label: 'Analyzing',    value: repos.filter(r => r.status === 'ANALYZING').length,color: '#c084fc', icon: Loader2 },
+                { label: 'Errors',       value: repos.filter(r => r.status === 'ERROR').length,   color: '#f87171', icon: AlertTriangle },
+              ].map(stat => (
                 <div key={stat.label} className="glass-card p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <stat.icon className={`w-4 h-4 ${stat.color}`} />
-                    <span className="text-2xl font-bold text-white">{stat.value}</span>
+                    <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
+                    <span className="text-2xl font-bold font-mono" style={{ color: stat.color }}>{stat.value}</span>
                   </div>
-                  <p className="text-xs text-[#a8a8c8]">{stat.label}</p>
+                  <p className="text-sm" style={{ color: '#9a8f82' }}>{stat.label}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Repository List */}
+          {/* ── Repo list ── */}
           {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="glass-card p-5 h-24 shimmer" />
-              ))}
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <div key={i} className="glass-card h-20 shimmer" />)}
             </div>
           ) : repos.length === 0 ? (
             <div className="glass-card p-16 text-center">
-              <BookOpen className="w-12 h-12 text-indigo-500/50 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">No repositories yet</h3>
-              <p className="text-[#a8a8c8] text-sm mb-6">
+              <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(218,119,86,0.35)' }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: '#F5ECD7' }}>No repositories yet</h3>
+              <p className="text-sm mb-6" style={{ color: '#9a8f82' }}>
                 Add a GitHub repository to start generating documentation automatically.
               </p>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-all"
-              >
+              <button onClick={() => setShowAddForm(true)} className="btn-primary">
                 <Plus className="w-4 h-4" />
                 Add your first repository
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {repos.map((repo) => {
-                const status = statusConfig[repo.status] ?? statusConfig.PENDING;
-                const StatusIcon = status.icon;
+            <div className="space-y-2">
+              {repos.map(repo => {
+                const st = statusConfig[repo.status] ?? statusConfig.PENDING;
+                const StatusIcon = st.icon;
                 return (
                   <div
                     key={repo.id}
-                    className="glass-card glass-card-hover p-5 cursor-pointer"
+                    className="glass-card glass-card-hover cursor-pointer"
                     onClick={() => router.push(`/repositories/${repo.id}`)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-                          <GitBranch className="w-5 h-5 text-indigo-400" />
+                    <div className="flex items-center justify-between px-5 py-4">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        {/* Repo icon */}
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(218,119,86,0.1)', border: '1px solid rgba(218,119,86,0.2)' }}>
+                          <GitBranch className="w-4 h-4" style={{ color: '#DA7756' }} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-white">{repo.fullName}</h3>
+
+                        <div className="min-w-0 flex-1">
+                          {/* Title row */}
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <h3 className="font-semibold text-sm" style={{ color: '#F5ECD7' }}>{repo.fullName}</h3>
                             {repo.language && (
-                              <span className="text-xs px-2 py-0.5 bg-white/5 rounded text-[#a8a8c8]">
+                              <span className="text-xs px-2 py-0.5 rounded font-mono" style={{ background: '#1c1917', border: '1px solid #2e2b26', color: '#9a8f82' }}>
                                 {repo.language}
                               </span>
                             )}
                             {repo.isPrivate && (
-                              <span className="text-xs px-2 py-0.5 bg-white/5 rounded text-[#a8a8c8]">
+                              <span className="text-xs px-2 py-0.5 rounded" style={{ background: '#1c1917', border: '1px solid #2e2b26', color: '#5a5248' }}>
                                 Private
                               </span>
                             )}
                           </div>
+
                           {repo.description && (
-                            <p className="text-sm text-[#a8a8c8] mt-1 line-clamp-1">
-                              {repo.description}
-                            </p>
+                            <p className="text-sm line-clamp-1 mb-1.5" style={{ color: '#9a8f82' }}>{repo.description}</p>
                           )}
-                          <div className="flex items-center gap-4 mt-2">
-                            <span
-                              className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${status.className}`}
-                            >
-                              <StatusIcon
-                                className={`w-3 h-3 ${repo.status === 'ANALYZING' ? 'animate-spin' : ''}`}
-                              />
-                              {status.label}
+
+                          {/* Meta row */}
+                          <div className="flex items-center gap-4">
+                            <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full ${st.className}`}>
+                              <StatusIcon className={`w-3 h-3 ${repo.status === 'ANALYZING' ? 'animate-spin' : ''}`} />
+                              {st.label}
                             </span>
                             {repo._count && (
-                              <span className="text-xs text-[#6666a0]">
-                                {repo._count.files} files
-                              </span>
+                              <span className="text-xs" style={{ color: '#5a5248' }}>{repo._count.files} files</span>
                             )}
-                            <span className="text-xs text-[#6666a0]">
-                              {new Date(repo.createdAt).toLocaleDateString()}
-                            </span>
+                            <span className="text-xs" style={{ color: '#5a5248' }}>{new Date(repo.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-                        {repo.status === 'PENDING' || repo.status === 'ERROR' ? (
+                      {/* Actions */}
+                      <div className="flex items-center gap-1.5 ml-4" onClick={e => e.stopPropagation()}>
+                        {(repo.status === 'PENDING' || repo.status === 'ERROR') && (
                           <button
                             id={`analyze-${repo.id}`}
                             onClick={() => analyzeRepository(repo.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-600/30 rounded-lg text-indigo-400 text-xs font-medium transition-all"
+                            className="btn-ghost text-xs px-3 py-1.5"
+                            style={{ color: '#DA7756', borderColor: 'rgba(218,119,86,0.3)', borderWidth: 1, borderStyle: 'solid' }}
                             title="Start Analysis"
                           >
-                            <Zap className="w-3 h-3" />
+                            <Zap className="w-3.5 h-3.5" />
                             Analyze
                           </button>
-                        ) : null}
+                        )}
                         <a
                           href={repo.githubUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1.5 hover:bg-white/5 rounded-lg text-[#6666a0] hover:text-white transition-all"
+                          className="btn-ghost p-2"
                           title="Open on GitHub"
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                         <button
                           id={`delete-${repo.id}`}
                           onClick={() => deleteRepository(repo.id)}
-                          className="p-1.5 hover:bg-red-500/10 rounded-lg text-[#6666a0] hover:text-red-400 transition-all"
+                          className="btn-ghost p-2"
+                          style={{ color: '#5a5248' }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#f87171'; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#5a5248'; }}
                           title="Delete"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -329,6 +425,17 @@ export default function DashboardPage() {
               })}
             </div>
           )}
+
+          {/* Footer status strip */}
+          <div
+            className="flex justify-between items-center text-xs font-mono px-4 py-2.5 rounded-md"
+            style={{ background: '#141210', border: '1px solid #201e1b', color: '#5a5248' }}
+          >
+            <span>repos: <span style={{ color: '#DA7756' }}>{repos.length}</span></span>
+            <span>status: <span style={{ color: '#4ade80' }}>operational</span></span>
+            <span>engine: <span style={{ color: '#67e8f9' }}>gemini-2.5-flash</span></span>
+          </div>
+
         </div>
       </main>
     </div>

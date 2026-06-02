@@ -22,7 +22,7 @@ export async function detectStaleness(
   const summary = { broken: 0, outdated: 0, review: 0 };
 
   for (const changedFile of changedFiles) {
-    if (!/\.(ts|tsx|js|jsx)$/.test(changedFile.filename)) continue;
+    if (!/\.(ts|tsx|js|jsx|py)$/.test(changedFile.filename)) continue;
 
     // Find the file in DB
     const file = await prisma.file.findFirst({

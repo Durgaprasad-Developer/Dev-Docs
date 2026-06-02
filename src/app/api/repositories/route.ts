@@ -70,15 +70,25 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 
   // Check if already added
   const existing = await prisma.repository.findFirst({
-    where: { userId, fullName: `${owner}/${repoName}` },
+    where: { fullName: `${owner}/${repoName}` },
   });
 
   if (existing) {
-    return NextResponse.json(
-      { success: false, error: 'Repository already added' },
-      { status: 409 }
-    );
+    if (existing.userId === userId) {
+      // Already in the current user's dashboard
+      return NextResponse.json(
+        { success: false, error: 'Repository already added to your dashboard' },
+        { status: 409 }
+      );
+    }
+    // Owned by another session (e.g. demo/credentials user) — reassign to current user
+    const reassigned = await prisma.repository.update({
+      where: { id: existing.id },
+      data: { userId, status: 'PENDING' },
+    });
+    return NextResponse.json({ success: true, data: reassigned }, { status: 200 });
   }
+
 
   try {
     const octokit = createGithubClient(accessToken);

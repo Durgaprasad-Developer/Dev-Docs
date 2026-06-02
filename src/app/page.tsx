@@ -3,19 +3,7 @@
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import {
-  GitBranch,
-  Zap,
-  MessageSquare,
-  RefreshCw,
-  Shield,
-  Search,
-  GitFork,
-  ArrowRight,
-  BookOpen,
-  Code2,
-  Sparkles,
-} from 'lucide-react';
+import { GitBranch, Zap, MessageSquare, RefreshCw, Shield, Search, ArrowRight, BookOpen, Code2, Sparkles } from 'lucide-react';
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -25,136 +13,99 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
+const features = [
+  { icon: Code2, title: 'AST Code Analysis', desc: 'Deep parsing of JS & TS using Babel AST to extract functions, classes, interfaces and all metadata.', color: '#67e8f9', tag: '01' },
+  { icon: Sparkles, title: 'AI Doc Generation', desc: 'Gemini 2.5 Flash generates Markdown docs: purpose, parameters, examples, and edge cases.', color: '#DA7756', tag: '02' },
+  { icon: RefreshCw, title: 'Change Detection', desc: 'GitHub webhooks trigger staleness detection — classifies docs as BROKEN, OUTDATED, or REVIEW_REQUIRED.', color: '#4ade80', tag: '03' },
+  { icon: MessageSquare, title: 'RAG Chat Assistant', desc: 'Ask natural language questions about your codebase, grounded via pgvector semantic search.', color: '#c084fc', tag: '04' },
+  { icon: Search, title: 'Documentation Portal', desc: 'Searchable, browsable portal with file tree, module explorer, and full version history.', color: '#fbbf24', tag: '05' },
+  { icon: Shield, title: 'Human Review Workflow', desc: 'All AI-drafted updates require approval. Side-by-side diff viewer shows exactly what changed.', color: '#f87171', tag: '06' },
+];
+
 export default function LandingPage() {
   const { status } = useSession();
   const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      router.push('/dashboard');
-    }
-  }, [status, router]);
-
-  const features = [
-    {
-      icon: Code2,
-      title: 'AST Code Analysis',
-      description:
-        'Deep parsing of JavaScript & TypeScript using Babel AST to extract functions, classes, interfaces, and all their metadata.',
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-500/10',
-    },
-    {
-      icon: Sparkles,
-      title: 'AI Doc Generation',
-      description:
-        'Gemini 2.5 Flash generates comprehensive Markdown documentation including purpose, parameters, examples, and edge cases.',
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10',
-    },
-    {
-      icon: RefreshCw,
-      title: 'Change Detection',
-      description:
-        'GitHub webhooks trigger automatic staleness detection when code is pushed, classifying docs as BROKEN, OUTDATED, or REVIEW_REQUIRED.',
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10',
-    },
-    {
-      icon: MessageSquare,
-      title: 'RAG Chat Assistant',
-      description:
-        'Ask natural language questions about your codebase. Answers are grounded in your actual documentation via pgvector semantic search.',
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10',
-    },
-    {
-      icon: Search,
-      title: 'Documentation Portal',
-      description:
-        'Searchable, browsable documentation portal with module explorer, file tree, and version history for every code unit.',
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10',
-    },
-    {
-      icon: Shield,
-      title: 'Human Review Workflow',
-      description:
-        'All AI-drafted updates require developer approval. Side-by-side diff viewer shows exactly what changed before you accept.',
-      color: 'text-rose-400',
-      bg: 'bg-rose-500/10',
-    },
-  ];
+  useEffect(() => { if (status === 'authenticated') router.push('/dashboard'); }, [status, router]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] overflow-hidden">
-      {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-violet-600/8 rounded-full blur-3xl" />
+    <main className="min-h-screen overflow-hidden relative" style={{ background: '#0e0c0a' }}>
+      {/* Warm ambient glow */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 left-1/3 w-[500px] h-[400px]" style={{ background: 'radial-gradient(ellipse, rgba(218,119,86,0.07) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96" style={{ background: 'radial-gradient(ellipse, rgba(103,232,249,0.04) 0%, transparent 70%)' }} />
       </div>
 
-      {/* Nav */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <BookOpen className="w-4 h-4 text-white" />
+      {/* ── NAV ── */}
+      <nav className="relative z-10 flex items-center justify-between px-8 py-4" style={{ borderBottom: '1px solid #2e2b26', background: 'rgba(14,12,10,0.85)', backdropFilter: 'blur(12px)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(218,119,86,0.15)', border: '1px solid rgba(218,119,86,0.3)' }}>
+            <BookOpen className="w-4 h-4" style={{ color: '#DA7756' }} />
           </div>
-          <span className="font-bold text-white text-lg tracking-tight">DevDocs AI</span>
+          <div>
+            <span className="font-semibold text-base" style={{ color: '#F5ECD7' }}>DevDocs AI</span>
+            <span className="ml-2 text-xs font-mono" style={{ color: '#5a5248' }}>v1.0</span>
+          </div>
         </div>
+
+        {/* Code snippet in nav — developer touch */}
+        <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded font-mono text-xs" style={{ background: '#141210', border: '1px solid #2e2b26', color: '#5a5248' }}>
+          <span style={{ color: '#DA7756' }}>const</span>
+          <span style={{ color: '#67e8f9' }}> docs</span>
+          <span> = </span>
+          <span style={{ color: '#4ade80' }}>autoGenerate</span>
+          <span style={{ color: '#9a8f82' }}>(repo)</span>
+          <div className="term-cursor" />
+        </div>
+
         <button
           id="nav-sign-in"
           onClick={() => signIn('github')}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-white/80 hover:text-white transition-all duration-200"
+          className="btn-secondary text-sm"
         >
           <GithubIcon className="w-4 h-4" />
           Sign in with GitHub
         </button>
       </nav>
 
-      {/* Hero */}
-      <section className="relative z-10 text-center pt-24 pb-20 px-8 max-w-5xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-xs font-medium mb-8">
+      {/* ── HERO ── */}
+      <section className="relative z-10 text-center pt-24 pb-20 px-8 max-w-4xl mx-auto">
+
+        {/* Tiny pixel accent badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded font-mono text-xs" style={{ background: 'rgba(218,119,86,0.1)', border: '1px solid rgba(218,119,86,0.25)', color: '#DA7756' }}>
           <Zap className="w-3 h-3" />
-          Powered by Gemini 2.5 Flash + pgvector
+          Powered by Gemini 2.5 Flash + pgvector RAG
         </div>
 
-        <h1 className="text-5xl sm:text-7xl font-bold text-white mb-6 leading-tight">
+        <h1 className="text-5xl sm:text-6xl font-bold mb-6 leading-tight tracking-tight" style={{ color: '#F5ECD7', letterSpacing: '-0.02em' }}>
           Documentation that{' '}
           <span className="gradient-text">writes itself</span>
         </h1>
 
-        <p className="text-lg text-[#a8a8c8] max-w-2xl mx-auto mb-10 leading-relaxed">
-          Connect a GitHub repository and watch AI analyze your codebase, generate comprehensive
-          documentation, detect when it goes stale, and keep it synchronized — automatically.
+        <p className="text-lg mb-10 max-w-2xl mx-auto leading-relaxed" style={{ color: '#9a8f82' }}>
+          Connect a GitHub repository and watch AI analyze your codebase, generate
+          comprehensive documentation, detect when it goes stale, and keep it
+          synchronized — automatically.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
-            id="hero-cta"
-            onClick={() => signIn('github')}
-            className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl text-white font-semibold text-lg shadow-xl shadow-indigo-900/30 hover:shadow-indigo-900/50 transition-all duration-300 hover:-translate-y-0.5"
-          >
+          <button id="hero-cta" onClick={() => signIn('github')} className="btn-primary text-base px-8 py-3.5 group">
             <GithubIcon className="w-5 h-5" />
             Connect GitHub Repository
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
-          
-          <button
-            id="demo-cta"
-            onClick={() => signIn('credentials', { callbackUrl: '/dashboard' })}
-            className="flex items-center gap-3 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl text-white font-semibold text-lg transition-all duration-300 hover:-translate-y-0.5"
-          >
-            <Sparkles className="w-5 h-5 text-purple-400" />
-            Bypass & Explore Demo
+          <button id="demo-cta" onClick={() => signIn('credentials', { callbackUrl: '/dashboard' })} className="btn-secondary text-base px-8 py-3.5">
+            <Sparkles className="w-4 h-4" style={{ color: '#DA7756' }} />
+            Explore Demo
           </button>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="relative z-10 px-8 pb-20 max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-20">
+      {/* ── PIXEL GRASS DIVIDER (tasteful accent) ── */}
+      <div className="px-8 max-w-4xl mx-auto"><div className="px-div" /></div>
+
+      {/* ── HOW IT WORKS ── */}
+      <section className="relative z-10 px-8 pb-16 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-16">
           {[
             { step: '01', label: 'Connect Repo', icon: GitBranch },
             { step: '02', label: 'AI Analyzes Code', icon: Code2 },
@@ -162,45 +113,46 @@ export default function LandingPage() {
             { step: '04', label: 'Ask Anything', icon: MessageSquare },
           ].map(({ step, label, icon: Icon }, i) => (
             <div key={i} className="glass-card p-5 text-center">
-              <div className="text-xs font-mono text-indigo-500 mb-2">{step}</div>
-              <Icon className="w-6 h-6 text-indigo-400 mx-auto mb-2" />
-              <div className="text-sm font-medium text-white">{label}</div>
+              <div className="font-mono text-xs mb-3" style={{ color: '#DA7756' }}>{step}</div>
+              <Icon className="w-5 h-5 mx-auto mb-2.5" style={{ color: '#9a8f82' }} />
+              <div className="text-sm font-medium" style={{ color: '#F5ECD7' }}>{label}</div>
             </div>
           ))}
         </div>
 
-        {/* Features */}
-        <h2 className="text-3xl font-bold text-white text-center mb-12">
-          Everything you need, <span className="gradient-text">nothing you don't</span>
+        <h2 className="text-2xl font-bold text-center mb-3" style={{ color: '#F5ECD7' }}>
+          Everything you need, <span className="gradient-text">built in</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((feature, i) => (
-            <div key={i} className="glass-card glass-card-hover p-6">
-              <div className={`w-10 h-10 rounded-lg ${feature.bg} flex items-center justify-center mb-4`}>
-                <feature.icon className={`w-5 h-5 ${feature.color}`} />
+        <p className="text-center text-sm mb-10" style={{ color: '#5a5248' }}>
+          From raw source code to searchable, always-current documentation.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {features.map((f, i) => (
+            <div key={i} className="glass-card glass-card-hover p-5 group cursor-default">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: `${f.color}15`, border: `1px solid ${f.color}30` }}>
+                  <f.icon className="w-4 h-4" style={{ color: f.color }} />
+                </div>
+                <div>
+                  <div className="font-mono text-xs mb-0.5" style={{ color: '#5a5248' }}>{f.tag}</div>
+                  <div className="font-semibold text-sm" style={{ color: '#F5ECD7' }}>{f.title}</div>
+                </div>
               </div>
-              <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-sm text-[#a8a8c8] leading-relaxed">{feature.description}</p>
+              <p className="text-sm leading-relaxed" style={{ color: '#9a8f82' }}>{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CTA footer */}
+      {/* ── FOOTER CTA ── */}
       <section className="relative z-10 text-center py-20 px-8">
-        <div className="glass-card gradient-border max-w-2xl mx-auto p-12">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Zero documentation debt, forever.
-          </h2>
-          <p className="text-[#a8a8c8] mb-8">
-            Join developers who never write documentation by hand again.
-          </p>
-          <button
-            id="footer-cta"
-            onClick={() => signIn('github')}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl text-white font-semibold transition-all duration-300 hover:-translate-y-0.5 shadow-xl shadow-indigo-900/30"
-          >
-            <GithubIcon className="w-5 h-5" />
+        <div className="max-w-xl mx-auto glass-card p-10" style={{ borderColor: 'rgba(218,119,86,0.25)', boxShadow: '0 0 60px rgba(218,119,86,0.06)' }}>
+          <div className="font-mono text-xs mb-4" style={{ color: '#5a5248' }}>// zero documentation debt</div>
+          <h2 className="text-2xl font-bold mb-3" style={{ color: '#F5ECD7' }}>Never write docs by hand again.</h2>
+          <p className="text-sm mb-7" style={{ color: '#9a8f82' }}>Join developers who ship faster because their docs keep up automatically.</p>
+          <button id="footer-cta" onClick={() => signIn('github')} className="btn-primary">
+            <GithubIcon className="w-4 h-4" />
             Get Started Free
           </button>
         </div>
