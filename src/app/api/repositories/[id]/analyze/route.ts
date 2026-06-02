@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { createGithubClient, getRepositoryTree, getFileContent } from '@/lib/github';
+import { createGithubClient, getRepositoryTree, getFileContent, getLatestCommit } from '@/lib/github';
 import { parseSourceFile } from '@/services/parser';
 import { generateAndStoreDocumentation, generateUpdatedDocumentation } from '@/services/generator';
 import { generateAndStoreEmbedding } from '@/services/embeddings';
@@ -98,6 +98,7 @@ async function runAnalysis(
     const { owner, repo: repoName } = parsed;
     const octokit = createGithubClient(accessToken);
 
+    const latestCommit = await getLatestCommit(octokit, owner, repoName, repo.defaultBranch);
     const tree = await getRepositoryTree(octokit, owner, repoName, repo.defaultBranch);
     logger.info(`Found ${tree.length} files for analysis`, { repoId });
 
@@ -305,7 +306,7 @@ async function runAnalysis(
 
     await prisma.repository.update({
       where: { id: repoId },
-      data: { status: 'READY' },
+      data: { status: 'READY', lastCommit: latestCommit },
     });
 
     logger.info('Analysis complete', { repoId, totalUnits, totalDocs });
