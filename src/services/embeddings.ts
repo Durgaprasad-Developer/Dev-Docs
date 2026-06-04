@@ -25,10 +25,10 @@ export async function generateAndStoreEmbedding(
   // We use raw query because Prisma doesn't natively support pgvector
   await prisma.$executeRawUnsafe(
     `
-    INSERT INTO embeddings (id, documentation_id, embedding, created_at, updated_at)
+    INSERT INTO embeddings (id, "documentationId", embedding, "createdAt", "updatedAt")
     VALUES (gen_random_uuid()::text, $1, $2::vector, NOW(), NOW())
-    ON CONFLICT (documentation_id)
-    DO UPDATE SET embedding = $2::vector, updated_at = NOW()
+    ON CONFLICT ("documentationId")
+    DO UPDATE SET embedding = $2::vector, "updatedAt" = NOW()
     `,
     documentationId,
     `[${embedding.join(',')}]`
@@ -53,18 +53,18 @@ export async function searchSimilarDocumentation(
   const embeddingStr = `[${queryEmbedding.join(',')}]`;
 
   const results = await prisma.$queryRawUnsafe<
-    { documentation_id: string; markdown: string; name: string; similarity: number }[]
+    { documentationId: string; markdown: string; name: string; similarity: number }[]
   >(
     `
     SELECT
-      e.documentation_id,
+      e."documentationId",
       d.markdown,
       cu.name,
       1 - (e.embedding <=> $1::vector) AS similarity
     FROM embeddings e
-    JOIN documentation d ON d.id = e.documentation_id
-    JOIN code_units cu ON cu.id = d.code_unit_id
-    WHERE cu.repository_id = $2
+    JOIN documentation d ON d.id = e."documentationId"
+    JOIN code_units cu ON cu.id = d."codeUnitId"
+    WHERE cu."repositoryId" = $2
     ORDER BY e.embedding <=> $1::vector
     LIMIT $3
     `,
@@ -74,7 +74,7 @@ export async function searchSimilarDocumentation(
   );
 
   return results.map((r) => ({
-    documentationId: r.documentation_id,
+    documentationId: r.documentationId,
     markdown: r.markdown,
     name: r.name,
     similarity: r.similarity,

@@ -128,15 +128,17 @@ export default function DashboardPage() {
   }
 
   async function analyzeRepository(repoId: string) {
+    // Optimistic UI update to provide immediate feedback
+    setRepos((prev) =>
+      prev.map((r) => (r.id === repoId ? { ...r, status: 'ANALYZING' } : r))
+    );
     try {
       await fetch(`/api/repositories/${repoId}/analyze`, { method: 'POST' });
-      // Poll for status update
-      setRepos((prev) =>
-        prev.map((r) => (r.id === repoId ? { ...r, status: 'ANALYZING' } : r))
-      );
       setTimeout(fetchRepos, 5000);
     } catch (err) {
       console.error('Failed to start analysis', err);
+      // Revert on error by refetching
+      fetchRepos();
     }
   }
 
@@ -232,7 +234,7 @@ export default function DashboardPage() {
                             <button
                               disabled={addingRepo || isAlreadyAdded}
                               onClick={() => addRemoteRepository(remote.htmlUrl)}
-                              className="flex-shrink-0 text-xs px-3 py-1.5 rounded font-medium transition-all disabled:cursor-not-allowed"
+                              className="flex-shrink-0 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded font-medium transition-all disabled:cursor-not-allowed"
                               style={isAlreadyAdded ? {
                                 background: 'transparent',
                                 border: '1px solid #2e2b26',
@@ -244,7 +246,12 @@ export default function DashboardPage() {
                                 cursor: 'pointer',
                               }}
                             >
-                              {isAlreadyAdded ? 'Added' : 'Select'}
+                              {addingRepo && !isAlreadyAdded ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Adding...
+                                </>
+                              ) : isAlreadyAdded ? 'Added' : 'Select'}
                             </button>
                           </div>
                         );
