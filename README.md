@@ -9,11 +9,11 @@
 ║   ╚═════╝  ╚═════╝  ╚═════╝    ╚══════╝╚═╝  ╚═══╝ ╚═════╝       ║
 ║                                                                  ║
 ║          AI-POWERED DEVELOPER DOCUMENTATION ENGINE               ║
-║                         [  v1.0  |  2026  ]                      ║
+║                  [  v1.0  |  Team Antigravity  ]                 ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-> `$ import { DocEngine } from "@dev-docs/engine"` ✓  
+> `$ import { DocEngine } from "@antigravity/dev-docs"` ✓  
 > `$ world.status` → **documentation debt: 0** · **sync: LIVE** · **AI: READY**
 
 ---
@@ -80,25 +80,57 @@ Modern software evolves fast. Documentation does not. The result: **documentatio
 ## `// TECH STACK`
 
 ```
-┌─────────────────┬────────────────────────────────────────────┐
-│   LAYER         │   TECHNOLOGY                               │
-├─────────────────┼────────────────────────────────────────────┤
-│ Frontend        │ Next.js 15 · React 19 · Tailwind CSS       │
-│ Backend         │ Node.js · Next.js API Routes · TypeScript  │
-│ Auth            │ NextAuth.js · GitHub OAuth                 │
-│ AI              │ Google Gemini 2.5 Flash                    │
-│ Code Parsing    │ @babel/parser · ts-morph                   │
-│ ORM             │ Prisma 5                                   │
-│ Database        │ PostgreSQL (Neon) + pgvector               │
-│ Monitoring      │ GitHub Webhooks · @octokit/rest            │
-│ Deployment      │ Vercel                                     │
-└─────────────────┴────────────────────────────────────────────┘
+┌─────────────────┬────────────────────────────────────────────────────────────┐
+│   LAYER         │   TECHNOLOGY                                               │
+├─────────────────┼────────────────────────────────────────────────────────────┤
+│ Frontend        │ Next.js 15 · React 19 · Tailwind CSS                       │
+│ Backend         │ Node.js · Next.js API Routes · TypeScript                  │
+│ Auth            │ NextAuth.js · GitHub OAuth                                 │
+│ AI (Primary)    │ Google Gemini 1.5 Flash                                    │
+│ AI (Fallback 1) │ Google Gemini 1.5 Pro                                      │
+│ AI (Fallback 2) │ NVIDIA NIM → meta/llama-3.3-70b-instruct                  │
+│ Embeddings      │ Google text-embedding-004                                  │
+│ Code Parsing    │ @babel/parser · ts-morph                                   │
+│ ORM             │ Prisma 5                                                   │
+│ Database        │ PostgreSQL (Neon) + pgvector                               │
+│ Monitoring      │ GitHub Webhooks · @octokit/rest                            │
+│ Deployment      │ Vercel                                                     │
+└─────────────────┴────────────────────────────────────────────────────────────┘
 ```
+
+### `// AI FALLBACK PIPELINE`
+
+The engine runs a **3-tier model fallback chain** to guarantee uptime even under rate limits or quota exhaustion. Implemented in `src/lib/gemini.ts`:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                   AI INFERENCE PIPELINE                      │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│   TIER 1  →  Gemini 1.5 Flash          (Google AI)          │
+│              Fast · Low cost · 8k output tokens              │
+│                   │                                          │
+│               [on error / rate limit]                        │
+│                   │                                          │
+│   TIER 2  →  Gemini 1.5 Pro            (Google AI)          │
+│              Higher accuracy · 16k output tokens             │
+│                   │                                          │
+│               [on error / rate limit]                        │
+│                   │                                          │
+│   TIER 3  →  meta/llama-3.3-70b-instruct  (NVIDIA NIM)      │
+│              via integrate.api.nvidia.com                    │
+│              70B parameter open model · last line of defense │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Embeddings are always generated via **Google `text-embedding-004`** and stored in PostgreSQL with the `pgvector` extension for semantic chat search.
 
 > **Why these choices?**
 > - **PostgreSQL over MongoDB** → Strong relational integrity for version tracking and GitHub metadata *(ADR-001)*
 > - **pgvector over Pinecone** → Unified database, zero extra cost, no 3rd-party dependency *(ADR-002)*
-> - **Gemini 2.5 Flash** → Fastest inference, largest context window at the lowest cost *(ADR-003)*
+> - **Gemini 1.5 Flash** → Fastest inference, large context window at lowest cost *(ADR-003)*
+> - **NVIDIA NIM (Llama 3.3 70B)** → Open-weight model fallback via NVIDIA's hosted inference API — zero cold-start, enterprise-grade reliability
 
 ---
 
@@ -209,6 +241,10 @@ DATABASE_URL="postgresql://user:password@host:5432/dbname?schema=public"
 
 # ── AI ────────────────────────────────────────────────────────
 GEMINI_API_KEY="your_gemini_api_key_here"
+
+# NVIDIA NIM (fallback model: meta/llama-3.3-70b-instruct)
+# Get yours at: https://integrate.api.nvidia.com
+NVIDIA_API_KEY="nvapi-your_nvidia_api_key_here"
 
 # ── Authentication ────────────────────────────────────────────
 NEXTAUTH_URL="http://localhost:3000"
@@ -374,7 +410,8 @@ This project demonstrates integration of the following advanced engineering conc
 | Concept | Implementation |
 |---|---|
 | **Static Analysis** | Babel AST + ts-morph for deep code structure extraction |
-| **Large Language Models** | Gemini 2.5 Flash for generation, update drafting, and RAG chat |
+| **Multi-Model AI Pipeline** | 3-tier fallback: Gemini 1.5 Flash → Gemini 1.5 Pro → NVIDIA Llama 3.3 70B |
+| **NVIDIA NIM Integration** | `meta/llama-3.3-70b-instruct` via `integrate.api.nvidia.com` as resilience layer |
 | **Vector Databases** | pgvector for semantic embedding storage and similarity search |
 | **Event-Driven Architecture** | GitHub Webhooks triggering real-time staleness detection |
 | **RAG Pipeline** | Question → Embedding Search → Top-K Docs → Grounded LLM Answer |
@@ -391,6 +428,6 @@ $ git log --oneline HEAD → main ✓
 $ build: success ✓
 $ deploy: vercel → LIVE ✓
 // ─────────────────────────────────────────────────────────────
-//   Built with ❤️  by the team
+//   Built with ❤️  by Team Antigravity
 // ─────────────────────────────────────────────────────────────
 ```
