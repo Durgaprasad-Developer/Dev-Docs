@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { BookOpen, LayoutDashboard, GitBranch, MessageSquare, Activity, Settings, LogOut } from 'lucide-react';
+import { BookOpen, LayoutDashboard, GitBranch, MessageSquare, Activity, HelpCircle, Settings, LogOut } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/repositories', icon: GitBranch,        label: 'Repositories' },
   { href: '/chat',         icon: MessageSquare,    label: 'Chat' },
   { href: '/insights',     icon: Activity,         label: 'Insights' },
+  { href: '/how-it-works', icon: HelpCircle,       label: 'How It Works' },
   { href: '/settings',     icon: Settings,         label: 'Settings' },
 ];
 

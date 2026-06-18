@@ -1,433 +1,243 @@
-```
-╔══════════════════════════════════════════════════════════════════╗
-║                                                                  ║
-║   ██████╗  ██████╗  ██████╗    ███████╗███╗   ██╗ ██████╗       ║
-║   ██╔══██╗██╔═══██╗██╔════╝    ██╔════╝████╗  ██║██╔════╝       ║
-║   ██║  ██║██║   ██║██║         █████╗  ██╔██╗ ██║██║  ███╗      ║
-║   ██║  ██║██║   ██║██║         ██╔══╝  ██║╚██╗██║██║   ██║      ║
-║   ██████╔╝╚██████╔╝╚██████╗    ███████╗██║ ╚████║╚██████╔╝      ║
-║   ╚═════╝  ╚═════╝  ╚═════╝    ╚══════╝╚═╝  ╚═══╝ ╚═════╝       ║
-║                                                                  ║
-║          AI-POWERED DEVELOPER DOCUMENTATION ENGINE               ║
-║                  [  v1.0  |  Team Antigravity  ]                 ║
-╚══════════════════════════════════════════════════════════════════╝
-```
+# DevDocs AI — AI-Powered Developer Documentation Engine
 
-> `$ import { DocEngine } from "@antigravity/dev-docs"` ✓  
-> `$ world.status` → **documentation debt: 0** · **sync: LIVE** · **AI: READY**
+> Code that documents itself — and stays accurate as the codebase evolves.
 
----
-
-![Next.js](https://img.shields.io/badge/Next.js-15.2-black?style=flat-square&logo=next.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-5.22-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?style=flat-square&logo=prisma&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791?style=flat-square&logo=postgresql&logoColor=white)
-![Gemini AI](https://img.shields.io/badge/Gemini_2.5_Flash-AI-FF6F00?style=flat-square&logo=google&logoColor=white)
-![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000?style=flat-square&logo=vercel&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini_1.5-AI-FF6F00?style=flat-square&logo=google&logoColor=white)
 
 ---
 
-## `// OVERVIEW`
+## Overview
 
-Modern software evolves fast. Documentation does not. The result: **documentation debt** that kills onboarding speed, causes incorrect API usage, and wastes developer hours.
+Outdated documentation wastes developer hours and causes incorrect API usage. The fix is not *more* documentation — it is documentation that stays accurate automatically.
 
-**Doc Engine** treats documentation as a living, continuously synchronized asset — not a manually maintained afterthought. It ingests your GitHub repositories, parses source code using Abstract Syntax Trees, uses Gemini 2.5 Flash to generate and update documentation, and provides a conversational AI assistant for exploring your codebase.
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    SYSTEM ARCHITECTURE                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   GitHub Repository                                         │
-│         │                                                   │
-│         ▼                                                   │
-│   Repository Ingestion Layer  ←──── GitHub Webhooks         │
-│         │                                  ▲               │
-│         ▼                                  │               │
-│   Code Parsing Service                Change Detection      │
-│   (Babel AST + ts-morph)                   │               │
-│         │                                  │               │
-│         ▼                                  │               │
-│   Gemini 2.5 Flash  ─────────────────► Staleness Detection  │
-│         │                                  │               │
-│         ▼                                  ▼               │
-│   PostgreSQL + pgvector  ◄──────── Documentation Diff       │
-│         │                                                   │
-│    ┌────┴────┐                                              │
-│    ▼         ▼                                              │
-│  Portal   Chat RAG ──► Conversational AI Assistant          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+**DevDocs AI** treats documentation as a living asset. It ingests a GitHub repository, parses the source code into an Abstract Syntax Tree, uses an LLM to generate Markdown docs for every function, class, and API, and then keeps those docs in sync as the code changes. When a signature changes, the affected docs are flagged by severity and an updated draft is proposed for human review. A built-in chat assistant answers questions grounded in the generated docs — no hallucinated answers.
 
 ---
 
-## `// KEY FEATURES`
+## Core Features
 
-| Feature | Description |
+| Feature | What it does |
 |---|---|
-| 🔗 **Repository Ingestion** | Connect public or private GitHub repos via OAuth |
-| 🧬 **AST Code Analysis** | Parses JS/TS to extract functions, classes, interfaces, APIs |
-| 🤖 **AI Doc Generation** | Gemini 2.5 Flash writes markdown docs per code unit |
-| 🔔 **Webhook Change Detection** | Monitors pushes, identifies impacted documentation |
-| 🏷️ **Staleness Classification** | Tags docs as `BROKEN` · `OUTDATED` · `REVIEW_REQUIRED` |
-| 📝 **AI Update Drafting** | Auto-drafts doc revisions with a side-by-side diff view |
-| 🔍 **Documentation Portal** | Searchable, browsable documentation website |
-| 💬 **Chat Assistant (RAG)** | Semantic Q&A over your codebase using pgvector |
+| **Code Ingestion & Parsing** | Connects a GitHub repo via OAuth, fetches source files, and parses JS/TS (Babel AST) and Python to extract functions, classes, methods, interfaces, parameters, return types, and async/export flags. |
+| **Documentation Generation** | Generates comprehensive Markdown per code unit — purpose, parameters, return values, side effects, usage examples, and edge cases. |
+| **Change Detection** | Detects code changes via GitHub webhooks **and** by re-analyzing a repo and comparing AST signatures against stored versions. |
+| **Staleness Flagging** | Classifies affected docs by severity: `BROKEN`, `OUTDATED`, or `REVIEW_REQUIRED`. Removed code units are flagged `BROKEN`. |
+| **Update Drafting** | Drafts an updated doc version reflecting the code change, presented as a side-by-side diff for approve/reject. Every decision is versioned. |
+| **Documentation Chat (RAG)** | Semantic Q&A over the docs using pgvector similarity search, with a keyword fallback. Answers are grounded in the docs and cite their sources. |
+| **Documentation Health Insights** | A dashboard that summarizes coverage and staleness for a repo, with an AI-generated health briefing on what to prioritize. |
+| **How It Works** | A guided walkthrough of the full documentation pipeline, stage by stage. |
 
 ---
 
-## `// TECH STACK`
+## How It Works
 
 ```
-┌─────────────────┬────────────────────────────────────────────────────────────┐
-│   LAYER         │   TECHNOLOGY                                               │
-├─────────────────┼────────────────────────────────────────────────────────────┤
-│ Frontend        │ Next.js 15 · React 19 · Tailwind CSS                       │
-│ Backend         │ Node.js · Next.js API Routes · TypeScript                  │
-│ Auth            │ NextAuth.js · GitHub OAuth                                 │
-│ AI (Primary)    │ Google Gemini 1.5 Flash                                    │
-│ AI (Fallback 1) │ Google Gemini 1.5 Pro                                      │
-│ AI (Fallback 2) │ NVIDIA NIM → meta/llama-3.3-70b-instruct                  │
-│ Embeddings      │ Google text-embedding-004                                  │
-│ Code Parsing    │ @babel/parser · ts-morph                                   │
-│ ORM             │ Prisma 5                                                   │
-│ Database        │ PostgreSQL (Neon) + pgvector                               │
-│ Monitoring      │ GitHub Webhooks · @octokit/rest                            │
-│ Deployment      │ Vercel                                                     │
-└─────────────────┴────────────────────────────────────────────────────────────┘
+GitHub Repository
+      │  (OAuth + Octokit)
+      ▼
+Ingestion ──► AST Parser ──► Code Units (functions, classes, APIs)
+                                  │
+                                  ▼
+                         LLM Doc Generation ──► Markdown docs (versioned)
+                                  │
+                                  ▼
+                         Embeddings (text-embedding-004) ──► pgvector
+                                  │
+        ┌─────────────────────────┼──────────────────────────┐
+        ▼                         ▼                            ▼
+  Documentation Portal      Chat (RAG)              Change & Staleness Detection
+                                                    (webhooks + re-analysis)
+                                                            │
+                                                            ▼
+                                                  Update Drafts + Diff Review
 ```
 
-### `// AI FALLBACK PIPELINE`
+### AI model fallback
 
-The engine runs a **3-tier model fallback chain** to guarantee uptime even under rate limits or quota exhaustion. Implemented in `src/lib/gemini.ts`:
+To stay available under rate limits or quota exhaustion, documentation and chat generation run through a fallback chain (see `src/lib/gemini.ts`):
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   AI INFERENCE PIPELINE                      │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│   TIER 1  →  Gemini 1.5 Flash          (Google AI)          │
-│              Fast · Low cost · 8k output tokens              │
-│                   │                                          │
-│               [on error / rate limit]                        │
-│                   │                                          │
-│   TIER 2  →  Gemini 1.5 Pro            (Google AI)          │
-│              Higher accuracy · 16k output tokens             │
-│                   │                                          │
-│               [on error / rate limit]                        │
-│                   │                                          │
-│   TIER 3  →  meta/llama-3.3-70b-instruct  (NVIDIA NIM)      │
-│              via integrate.api.nvidia.com                    │
-│              70B parameter open model · last line of defense │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
+1. **Gemini 1.5 Flash** — fast, low cost, primary model
+2. **Gemini 1.5 Pro** — higher accuracy, used if Flash fails
+3. **NVIDIA NIM → `meta/llama-3.3-70b-instruct`** — open-weight fallback if both Gemini calls fail
 
-Embeddings are always generated via **Google `text-embedding-004`** and stored in PostgreSQL with the `pgvector` extension for semantic chat search.
-
-> **Why these choices?**
-> - **PostgreSQL over MongoDB** → Strong relational integrity for version tracking and GitHub metadata *(ADR-001)*
-> - **pgvector over Pinecone** → Unified database, zero extra cost, no 3rd-party dependency *(ADR-002)*
-> - **Gemini 1.5 Flash** → Fastest inference, large context window at lowest cost *(ADR-003)*
-> - **NVIDIA NIM (Llama 3.3 70B)** → Open-weight model fallback via NVIDIA's hosted inference API — zero cold-start, enterprise-grade reliability
+Embeddings are always generated with Google `text-embedding-004` (768 dimensions) and stored in PostgreSQL via the `pgvector` extension.
 
 ---
 
-## `// USER FLOW`
+## Tech Stack
 
-> **How to use Doc Engine from zero to fully-documented codebase:**
-
-```
-STEP 1 — SIGN IN
-──────────────────────────────────────────────────────────────
-  ► Navigate to https://your-app.vercel.app
-  ► Click  [ Sign in with GitHub ]
-  ► Authorize the OAuth app — you're in.
-
-STEP 2 — CONNECT A REPOSITORY
-──────────────────────────────────────────────────────────────
-  ► Go to [ Repositories ] → [ + Add Repository ]
-  ► Paste your GitHub repo URL (public or private)
-  ► Click [ Analyze Repository ]
-  ► The engine fetches all source files and begins analysis.
-
-STEP 3 — AI DOCUMENTATION GENERATION
-──────────────────────────────────────────────────────────────
-  ► Doc Engine parses every .js / .ts file using Babel AST
-  ► Extracts: functions · classes · interfaces · APIs · types
-  ► Gemini 2.5 Flash generates markdown docs for each unit
-  ► Docs are stored, versioned, and indexed with embeddings
-  ► Status: [ GENERATING... ] → [ COMPLETE ✓ ]
-
-STEP 4 — EXPLORE THE DOCUMENTATION PORTAL
-──────────────────────────────────────────────────────────────
-  ► Navigate to [ Documentation ] tab
-  ► Browse your project's modules, functions, and APIs
-  ► Use the search bar to find any component by name
-  ► Each entry shows: Purpose · Parameters · Returns · Examples
-
-STEP 5 — CHAT WITH YOUR CODEBASE
-──────────────────────────────────────────────────────────────
-  ► Go to [ Chat ] tab
-  ► Ask anything about your project:
-      "How does authentication work?"
-      "What parameters does createUser() accept?"
-      "Which module handles GitHub webhook events?"
-  ► The RAG pipeline retrieves relevant docs via pgvector
-  ► Gemini grounds its answer in your actual code — no hallucinations.
-
-STEP 6 — REVIEW STALE DOCUMENTATION (CONTINUOUS)
-──────────────────────────────────────────────────────────────
-  ► You push new code to GitHub
-  ► GitHub Webhook fires → Doc Engine detects changed files
-  ► Impacted docs are classified:
-      🔴  BROKEN           → Docs no longer match code
-      🟡  OUTDATED         → Changes likely affect accuracy
-      🟢  REVIEW_REQUIRED  → Should be checked by a human
-  ► Go to [ Review ] tab to see flagged documentation
-
-STEP 7 — APPROVE OR REJECT AI-DRAFTED UPDATES
-──────────────────────────────────────────────────────────────
-  ► For each flagged doc, Gemini drafts a new version
-  ► You see a side-by-side DIFF:
-      [ Existing Docs ]   ←→   [ AI-Proposed Update ]
-  ► Click [ ✓ Approve ] to publish or [ ✗ Reject ] to discard
-  ► All decisions are versioned in documentation_versions table
-
-STEP 8 — REPEAT
-──────────────────────────────────────────────────────────────
-  ► Every push triggers Steps 6–7 automatically
-  ► Documentation stays synchronized with your codebase
-  ► Documentation debt: 0
-```
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 15 (App Router), React 19, Tailwind CSS |
+| Backend | Next.js API Routes, TypeScript |
+| Auth | NextAuth.js + GitHub OAuth |
+| AI (generation) | Gemini 1.5 Flash → Gemini 1.5 Pro → NVIDIA Llama 3.3 70B |
+| Embeddings | Google `text-embedding-004` |
+| Code parsing | `@babel/parser`, `ts-morph`, custom Python parser |
+| ORM | Prisma 5 |
+| Database | PostgreSQL + `pgvector` |
+| Monitoring | GitHub Webhooks, `@octokit/rest` |
+| Validation / logging | Zod, Winston |
 
 ---
 
-## `// LOCAL SETUP`
+## Local Setup
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v20+
-- npm
-- PostgreSQL instance ([Neon](https://neon.tech) recommended — free tier works)
-- [GitHub OAuth App](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app)
-- [Google Gemini API Key](https://aistudio.google.com/app/apikey)
+- Node.js v20+
+- A PostgreSQL instance with the `pgvector` extension (e.g. [Neon](https://neon.tech))
+- A [GitHub OAuth App](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app)
+- A [Google Gemini API key](https://aistudio.google.com/app/apikey)
+- *(optional)* An [NVIDIA NIM API key](https://integrate.api.nvidia.com) for the third-tier fallback
 
-### 1 · Clone
+### 1. Clone & install
 
 ```bash
 git clone https://github.com/Durgaprasad-Developer/Dev-Docs.git
 cd Dev-Docs
-```
-
-### 2 · Install Dependencies
-
-```bash
 npm install
 ```
 
-### 3 · Configure Environment
+### 2. Configure environment
 
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` with your values:
+Create a `.env.local` file in the project root:
 
 ```env
-# ── Database ──────────────────────────────────────────────────
+# Database
 DATABASE_URL="postgresql://user:password@host:5432/dbname?schema=public"
+DIRECT_URL="postgresql://user:password@host:5432/dbname?schema=public"
 
-# ── AI ────────────────────────────────────────────────────────
-GEMINI_API_KEY="your_gemini_api_key_here"
+# AI
+GEMINI_API_KEY="your_gemini_api_key"
+NVIDIA_API_KEY="nvapi-your_nvidia_key"   # optional fallback
 
-# NVIDIA NIM (fallback model: meta/llama-3.3-70b-instruct)
-# Get yours at: https://integrate.api.nvidia.com
-NVIDIA_API_KEY="nvapi-your_nvidia_api_key_here"
-
-# ── Authentication ────────────────────────────────────────────
+# Auth
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate_with: openssl rand -base64 32"
 GITHUB_CLIENT_ID="your_github_oauth_client_id"
 GITHUB_CLIENT_SECRET="your_github_oauth_client_secret"
 
-# ── Webhooks ──────────────────────────────────────────────────
+# Webhooks (optional)
 GITHUB_WEBHOOK_SECRET="your_webhook_secret"
-
-# ── App ───────────────────────────────────────────────────────
-APP_URL="http://localhost:3000"
-LOG_LEVEL="info"
 ```
 
-> **Getting a `NEXTAUTH_SECRET`:** Run `openssl rand -base64 32` in your terminal.
+Generate a `NEXTAUTH_SECRET` with `openssl rand -base64 32`.
 
-### 4 · Database Setup
+### 3. Database
 
 ```bash
-# Generate the Prisma client
 npx prisma generate
-
-# Apply database migrations
 npx prisma migrate dev --name init
-
-# (Optional) View your database in a GUI
-npx prisma studio
 ```
 
-### 5 · Start Dev Server
+### 4. Run
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you're live. 🟢
+Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## `// DATABASE SCHEMA`
+## Using the App
 
-```
-repositories         → Tracked GitHub repositories
-files                → Source files per repository
-code_units           → Parsed AST nodes (functions, classes, APIs)
-documentation        → Active AI-generated docs per code unit
-documentation_versions → Version history + review status (Pending/Approved/Rejected)
-embeddings           → pgvector vectors for semantic search
-chat_history         → Audit log of developer–AI conversations
-```
-
----
-
-## `// FOLDER STRUCTURE`
-
-```
-Dev-Docs/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── dashboard/          # Main dashboard
-│   │   ├── repositories/       # Repo management
-│   │   ├── documentation/      # Doc portal
-│   │   ├── chat/               # AI chat interface
-│   │   └── api/                # API route handlers
-│   │       ├── repositories/
-│   │       ├── documentation/
-│   │       ├── chat/
-│   │       └── webhooks/github/
-│   ├── services/               # Core business logic
-│   │   ├── embeddings.ts       # pgvector embedding service
-│   │   ├── generator.ts        # Gemini doc generation
-│   │   └── staleness/          # Change & staleness detection
-│   ├── lib/
-│   │   ├── github.ts           # Octokit GitHub integration
-│   │   ├── auth.ts             # NextAuth configuration
-│   │   └── prisma.ts           # Prisma client singleton
-│   └── types/
-│       └── index.ts            # Shared TypeScript types
-├── prisma/
-│   └── schema.prisma           # Database schema
-├── .env.example                # Environment variable template
-├── next.config.js
-└── tailwind.config.js
-```
+1. **Sign in** with GitHub.
+2. **Add a repository** — select one of your GitHub repos or paste a URL.
+3. **Analyze** — the engine fetches files, parses them, generates docs, and builds embeddings. Status goes `PENDING → ANALYZING → READY`.
+4. **Documentation** — browse the generated docs per code unit.
+5. **Chat** — ask questions about the codebase; answers are grounded in the docs and cite sources.
+6. **Insights** — view documentation coverage and a per-severity staleness breakdown, and generate an AI health briefing on what needs attention.
+7. **How It Works** — a guided walkthrough of the documentation pipeline.
+8. **Review & approve** — when code changes, affected docs are flagged and an updated draft is proposed; review the diff and approve or reject.
 
 ---
 
-## `// TEAM WORKFLOW`
+## Database Schema
 
-### Branching Strategy
-
-```
-main          ← production-ready · CI/CD deploys here
-  └── develop ← primary integration branch
-        ├── feature/<name>   ← new features
-        └── bugfix/<name>    ← bug fixes
-```
-
-### Contribution Steps
-
-```bash
-# 1. Sync latest changes
-git pull origin develop
-
-# 2. Create your branch
-git checkout -b feature/your-feature-name
-
-# 3. Make changes, then commit with conventional format
-git commit -m "feat(ai): add fallback model pipeline for rate limits"
-
-# 4. Push and open a PR → targeting 'develop'
-git push origin feature/your-feature-name
-```
-
-### Commit Convention
-
-| Prefix | Use |
+| Table | Purpose |
 |---|---|
-| `feat:` | New feature |
-| `fix:` | Bug fix |
-| `docs:` | Documentation change |
-| `refactor:` | Code improvement (no feature/fix) |
-| `chore:` | Build, deps, tooling |
-
-### PR Checklist
-
-Before requesting a review, confirm:
-- [ ] `npm run lint` passes with no errors
-- [ ] `npm run build` compiles successfully
-- [ ] Prisma schema changes include a migration file
-- [ ] New environment variables are added to `.env.example`
-- [ ] At least 1 team member has reviewed and approved
+| `repositories` | Tracked GitHub repositories |
+| `files` | Source files per repository (with content hash) |
+| `code_units` | Parsed AST nodes — functions, classes, methods, interfaces |
+| `documentation` | Active generated docs per code unit (with status) |
+| `documentation_versions` | Version history for review and rollback |
+| `embeddings` | `vector(768)` embeddings for semantic search |
+| `chat_history` | Developer ↔ assistant conversation log |
 
 ---
 
-## `// API REFERENCE`
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── dashboard/        # Repository management
+│   ├── repositories/     # Repo detail + file views
+│   ├── documentation/    # Documentation portal
+│   ├── chat/             # RAG chat interface
+│   ├── insights/         # Documentation health insights
+│   ├── how-it-works/     # Pipeline walkthrough
+│   ├── diff/             # Update-draft diff review
+│   └── api/              # API route handlers
+│       ├── repositories/ # add, list, fetch, analyze
+│       ├── docs/         # get doc, approve/reject update
+│       ├── chat/         # RAG chat endpoint
+│       └── webhooks/github/  # push-event receiver
+├── services/
+│   ├── parser.ts         # AST parsing (JS/TS + Python)
+│   ├── generator.ts      # LLM doc generation & updates
+│   ├── staleness.ts      # change detection & severity classification
+│   ├── embeddings.ts     # pgvector embedding + similarity search
+│   ├── chat.ts           # RAG pipeline
+│   └── diff.ts           # LCS-based text diff
+├── lib/
+│   ├── gemini.ts         # AI model fallback chain + embeddings
+│   ├── github.ts         # Octokit integration
+│   ├── auth.ts           # NextAuth configuration
+│   └── prisma.ts         # Prisma client singleton
+└── components/           # Shared UI (Sidebar, etc.)
+```
+
+---
+
+## API Reference
 
 ```http
 # Repositories
-POST   /api/repositories          → Add & analyze a new repository
-GET    /api/repositories          → List all tracked repositories
-GET    /api/repositories/:id      → Fetch one repository
+POST   /api/repositories              Add a repository
+GET    /api/repositories              List repositories
+GET    /api/repositories/:id          Fetch one repository (with stats & code units)
+POST   /api/repositories/:id/analyze  Parse + generate docs + embeddings
 
 # Documentation
-POST   /api/docs/generate         → Trigger documentation generation
-GET    /api/docs/:id              → Get documentation for a code unit
-PATCH  /api/docs/:id              → Approve or reject an AI update draft
+GET    /api/docs/:id                  Get documentation for a code unit
+PATCH  /api/docs/:id                  Approve or reject an update draft
 
 # Chat
-POST   /api/chat                  → Send a message to the RAG assistant
+POST   /api/chat                      Ask the RAG assistant
+GET    /api/chat?repositoryId=        Fetch chat history
 
 # Webhooks
-POST   /api/webhooks/github       → GitHub push event receiver
+POST   /api/webhooks/github           GitHub push-event receiver
 ```
 
 ---
 
-## `// ACADEMIC EVALUATION`
+## Scripts
 
-This project demonstrates integration of the following advanced engineering concepts:
-
-| Concept | Implementation |
-|---|---|
-| **Static Analysis** | Babel AST + ts-morph for deep code structure extraction |
-| **Multi-Model AI Pipeline** | 3-tier fallback: Gemini 1.5 Flash → Gemini 1.5 Pro → NVIDIA Llama 3.3 70B |
-| **NVIDIA NIM Integration** | `meta/llama-3.3-70b-instruct` via `integrate.api.nvidia.com` as resilience layer |
-| **Vector Databases** | pgvector for semantic embedding storage and similarity search |
-| **Event-Driven Architecture** | GitHub Webhooks triggering real-time staleness detection |
-| **RAG Pipeline** | Question → Embedding Search → Top-K Docs → Grounded LLM Answer |
-| **Version Control** | Full documentation versioning with human-in-the-loop review |
-
-Architecture decision rationale is documented in [`ARCHITECTURE_DECISIONS.md`](./ARCHITECTURE_DECISIONS.md).  
-Full system design is in [`Design.md`](./Design.md).
+```bash
+npm run dev       # start dev server
+npm run build     # prisma generate + production build
+npm run start     # run production build
+npm run lint      # lint
+```
 
 ---
 
-```
-// status ──────────────────────────────────────────────────────
-$ git log --oneline HEAD → main ✓
-$ build: success ✓
-$ deploy: vercel → LIVE ✓
-// ─────────────────────────────────────────────────────────────
-//   Built with ❤️  by Team Antigravity
-// ─────────────────────────────────────────────────────────────
-```
+Built with Next.js, Prisma, PostgreSQL/pgvector, and Google Gemini.
